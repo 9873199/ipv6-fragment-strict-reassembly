@@ -12,6 +12,8 @@ IPv6 (Internet Protocol v6).
 """
 
 
+from dataclasses import dataclass, field
+from enum import Enum
 from hashlib import md5
 import random
 import socket
@@ -81,7 +83,7 @@ from scapy.layers.l2 import (
     SNAP,
     SourceMACField,
 )
-from scapy.packet import bind_layers, Packet, Raw
+from scapy.packet import bind_layers, NoPayload, Packet, Raw
 from scapy.sendrecv import sendp, sniff, sr, srp1
 from scapy.supersocket import SuperSocket
 from scapy.utils import checksum, strxor
@@ -93,7 +95,11 @@ from scapy.volatile import RandInt, RandShort
 
 # Typing
 from typing import (
+    Dict,
+    Iterable,
+    List,
     Optional,
+    Tuple,
 )
 
 if not socket.has_ipv6:
@@ -1336,6 +1342,477 @@ def fragment6(pkt, fragSize):
             break
     return res
 
+
+#############################################################################
+#############################################################################
+#           Strict IPv6 reassembly for IDS pre-processing                  #
+#                 RFC 5722 (overlapping fragments) and                      #
+#                 RFC 6946 (atomic fragments)                               #
+#############################################################################
+#############################################################################
+
+
+_IPV6_HDR_LEN = 40
+_FRAG_HDR_LEN = 8
+_IPV6_MAX_PLEN = 0xFFFF
+
+
+class StrictIPv6ReasmError(Enum):
+    """Reasons why a fragment group is rejected by defragment6_strict()."""
+
+    BAD_PLEN = "IPv6 payload length does not match the on-wire extension " \
+               "headers and fragment body"
+    NESTED_FRAGHDR = "a Fragment Header is nested inside the fragmentable " \
+                     "part"
+    HEADER_CONFLICT = "conflicting Fragment Header next-header value or " \
+                      "unfragmentable extension-header chain in the group"
+    NON_LAST_NOT_MULT8 = "a non-last fragment data length is not a multiple " \
+                         "of 8 octets"
+    OFFSET_OVERFLOW = "a fragment offset extends beyond what an IPv6 " \
+                      "payload length can express"
+    MULTIPLE_LAST = "several fragments with M=0 claim the end of the group"
+    NO_FIRST = "the group has no fragment with offset=0"
+    NO_LAST = "the group has no fragment with M=0"
+    OVERLAP = "overlapping fragment byte ranges (RFC 5722)"
+    DUPLICATE = "an exact duplicate fragment is present"
+    HOLE = "a hole remains between fragment byte ranges"
+    LIMIT_GROUPS = "the maximum number of fragment groups was reached"
+    LIMIT_FRAGMENTS = "the maximum number of fragments per group was reached"
+    LIMIT_BYTES = "the cumulative fragment byte budget was reached"
+
+
+@dataclass
+class StrictIPv6ReasmGroup:
+    """Identity of an IPv6 fragment group (RFC 2460 section 4.5)."""
+
+    src: str
+    dst: str
+    frag_id: int
+
+
+@dataclass
+class StrictIPv6ReasmRange:
+    """A fragment byte range, counted from the start of the fragmentable
+    part. It never contains the fragment payload itself."""
+
+    offset: int
+    length: int
+
+    @property
+    def end(self):
+        # type: () -> int
+        return self.offset + self.length
+
+
+@dataclass
+class StrictIPv6ReasmReject:
+    """A rejected fragment group: its identity, the observed byte ranges and
+    the rejection reason. Application data is deliberately excluded."""
+
+    group: StrictIPv6ReasmGroup
+    reason: StrictIPv6ReasmError
+    ranges: List[StrictIPv6ReasmRange] = field(default_factory=list)
+    detail: str = ""
+
+
+@dataclass
+class StrictIPv6ReasmResult:
+    """Result of defragment6_strict(): completed datagrams and rejected
+    groups, with no partially reassembled packet ever returned."""
+
+    reassembled: List[Packet] = field(default_factory=list)
+    rejected: List[StrictIPv6ReasmReject] = field(default_factory=list)
+
+
+class _Strict6Reject(Exception):
+    """Internal control-flow exception carrying a rejection reason."""
+
+    def __init__(self, reason, detail=""):
+        # type: (StrictIPv6ReasmError, str) -> None
+        self.reason = reason
+        self.detail = detail
+        super(_Strict6Reject, self).__init__(reason.value)
+
+
+def _strict6_hdr_bytes(hdr):
+    # type: (Packet) -> bytes
+    """Exact on-wire bytes of a dissected extension header."""
+    if hdr.raw_packet_cache is not None:
+        return hdr.raw_packet_cache
+    return hdr.self_build()
+
+
+class _Strict6Unit(object):
+    """Bookkeeping for one fragment unit.
+
+    Regular groups and RFC 6946 atomic fragments live in distinct units even
+    when they share the same (src, dst, id) triple, so an atomic datagram can
+    neither fill a regular group nor poison its rejection state.
+    """
+
+    def __init__(self, key, is_atomic):
+        # type: (tuple, bool) -> None
+        self.identity = StrictIPv6ReasmGroup(key[0], key[1], key[2])
+        self.is_atomic = is_atomic
+        # Ranges of every fragment observed for this unit, for the report.
+        self.ranges = []  # type: List[StrictIPv6ReasmRange]
+        # Accepted fragments: (offset, length, M, body bytes, sequence).
+        self.frags = []  # type: List[tuple]
+        self.fingerprint = None  # type: Optional[tuple]
+        self.first_pkt = None  # type: Optional[Packet]
+        self.reason = None  # type: Optional[StrictIPv6ReasmError]
+        self.detail = ""
+
+    @property
+    def rejected(self):
+        # type: () -> bool
+        return self.reason is not None
+
+    def fail(self, reason, detail=""):
+        # type: (StrictIPv6ReasmError, str) -> None
+        # The first failure is the reported one; later fragments still
+        # contribute their ranges but never their payload.
+        if self.reason is None:
+            self.reason = reason
+            self.detail = detail
+
+
+def _strict6_layers(pkt):
+    # type: (Packet) -> Tuple[Optional[IPv6], Optional[IPv6ExtHdrFragment]]
+    """Return the IPv6 layer and the outermost Fragment Header of a packet,
+    or (None, None) when it is not an IPv6 fragment."""
+    ip6 = pkt.getlayer(IPv6)
+    if ip6 is None:
+        return None, None
+    return ip6, pkt.getlayer(IPv6ExtHdrFragment)
+
+
+def _strict6_wire_geometry(ip6, frag):
+    # type: (IPv6, IPv6ExtHdrFragment) -> Tuple[List[Packet], bytes]
+    """Validate the on-wire geometry of one fragment.
+
+    The fragment body is sliced from the captured IPv6 bytes using the
+    payload length field, so link-layer padding, packet object caches and
+    truncated remnants can never be treated as fragment data.
+
+    Returns (extension headers before the Fragment Header, fragment body).
+    """
+    wire = bytes(ip6.original) or raw(ip6)
+    if len(wire) < _IPV6_HDR_LEN or ip6.plen is None:
+        raise _Strict6Reject(StrictIPv6ReasmError.BAD_PLEN)
+
+    # The unfragmentable extension-header chain sits between IPv6 and the
+    # Fragment Header.
+    chain = []
+    cur = ip6.payload
+    while cur is not frag:
+        if isinstance(cur, NoPayload):
+            raise _Strict6Reject(StrictIPv6ReasmError.BAD_PLEN)
+        chain.append(cur)
+        cur = cur.payload
+    chain_len = sum(len(_strict6_hdr_bytes(hdr)) for hdr in chain)
+
+    plen = ip6.plen
+    available = len(wire) - _IPV6_HDR_LEN
+    if plen > available:
+        # Trailing bytes are missing: truncated capture or an oversized
+        # payload length. Never silently use the short remainder.
+        raise _Strict6Reject(
+            StrictIPv6ReasmError.BAD_PLEN,
+            "payload length %d exceeds the %d available IPv6 bytes"
+            % (plen, available),
+        )
+    if plen < chain_len + _FRAG_HDR_LEN:
+        raise _Strict6Reject(
+            StrictIPv6ReasmError.BAD_PLEN,
+            "payload length %d cannot hold %d extension-header bytes plus "
+            "the 8-byte Fragment Header" % (plen, chain_len),
+        )
+
+    body_len = plen - chain_len - _FRAG_HDR_LEN
+    start = _IPV6_HDR_LEN + chain_len + _FRAG_HDR_LEN
+    body = wire[start:start + body_len]
+    if len(body) != body_len:
+        raise _Strict6Reject(StrictIPv6ReasmError.BAD_PLEN)
+    return chain, body
+
+
+def _strict6_observed_range(ip6, frag, offset):
+    # type: (IPv6, IPv6ExtHdrFragment, int) -> StrictIPv6ReasmRange
+    """Best-effort range for a fragment whose payload length is unusable:
+    reports the bytes actually present on the wire, never invented ones."""
+    try:
+        wire = bytes(ip6.original) or raw(ip6)
+        chain_len = 0
+        cur = ip6.payload
+        while cur is not frag and not isinstance(cur, NoPayload):
+            chain_len += len(_strict6_hdr_bytes(cur))
+            cur = cur.payload
+        observed = len(wire) - _IPV6_HDR_LEN - chain_len - _FRAG_HDR_LEN
+    except Exception:
+        observed = 0
+    return StrictIPv6ReasmRange(offset, max(0, observed))
+
+
+def _strict6_has_nested_fraghdr(frag):
+    # type: (IPv6ExtHdrFragment) -> bool
+    cur = frag.payload
+    while not isinstance(cur, NoPayload):
+        if isinstance(cur, IPv6ExtHdrFragment):
+            return True
+        cur = cur.payload
+    return False
+
+
+def _strict6_rebuild(first_pkt, fragmentable):
+    # type: (Packet, bytes) -> Packet
+    """Rebuild the complete datagram from the fragment carrying offset=0.
+
+    The Fragment Header is removed, the next-header value of the preceding
+    header and the IPv6 payload length are corrected, while the upper-layer
+    bytes are kept bit-for-bit identical. Input packets are never modified:
+    this works on a deep copy.
+    """
+    out = first_pkt.copy()
+    out_ip6 = out[IPv6]
+    out_frag = out[IPv6ExtHdrFragment]
+    nh = out_frag.nh
+
+    previous = out_frag.underlayer
+    previous.nh = nh  # setfieldval() invalidates the stale header cache
+    previous.remove_payload()
+    previous.add_payload(conf.raw_layer(load=fragmentable))
+    out_ip6.plen = None  # recomputed by IPv6.post_build()
+
+    # Re-parse the serialized result, including any link-layer underlayer,
+    # so the caller gets a clean dissection with consistent field caches.
+    top = out
+    while top.underlayer is not None:
+        top = top.underlayer
+    return top.__class__(raw(top))
+
+
+@conf.commands.register
+def defragment6_strict(
+    packets,  # type: Iterable[Packet]
+    max_groups=1024,  # type: int
+    max_fragments_per_group=64,  # type: int
+    max_total_fragment_bytes=64 * 1024 * 1024,  # type: int
+):
+    # type: (...) -> StrictIPv6ReasmResult
+    """Strictly reassemble IPv6 fragments for offline IDS pre-processing.
+
+    Unlike defragment6(), this never invents bytes, truncates or keeps the
+    first overlapping copy: every rule below either produces a complete
+    datagram or rejects the whole fragment group.
+
+    Packets are grouped by IPv6 source address, destination address and the
+    32-bit fragment identification (never by the identification alone).
+    Within a group the Fragment Header next-header value and the whole
+    unfragmentable extension-header chain must be identical. Reassembly
+    follows RFC 5722: any overlapping byte range, including an exact
+    duplicate fragment, discards the group; non-last fragments must hold a
+    multiple of 8 octets; the group needs an offset=0 fragment, a single
+    M=0 last fragment and fully contiguous ranges. RFC 6946 atomic
+    fragments (offset=0, M=0) are handled as standalone datagrams: they
+    neither fill nor taint a same-identification regular fragment group,
+    and vice versa.
+
+    The on-wire IPv6 payload length must match the extension headers and the
+    fragment body: link-layer padding, object cache fields and truncated
+    remnants are rejected instead of being consumed.
+
+    The limits are enforced before any reassembly buffer is allocated, and an
+    over-limit unit is reported as rejected rather than half-completed.
+
+    :param packets: any iterable of Packet objects; non-fragments are
+        ignored and input packets are never modified.
+    :param max_groups: maximum number of distinct fragment units accepted.
+    :param max_fragments_per_group: maximum number of fragments accepted in
+        a single unit.
+    :param max_total_fragment_bytes: cumulative budget of fragment body
+        bytes accepted from the batch.
+    :return: a StrictIPv6ReasmResult holding the completed datagrams and
+        the rejected groups. Rejection reports only expose group identity,
+        byte ranges and the reason; payload contents are never logged.
+    """
+    if max_groups < 0 or max_fragments_per_group < 0 or \
+            max_total_fragment_bytes < 0:
+        raise ValueError("defragment6_strict() limits must be non-negative")
+
+    result = StrictIPv6ReasmResult()
+    units = {}  # type: Dict[tuple, _Strict6Unit]
+    byte_budget = max_total_fragment_bytes
+
+    for sequence, pkt in enumerate(packets):
+        ip6, frag = _strict6_layers(pkt)
+        if ip6 is None or frag is None:
+            continue
+
+        identity_key = (plain_str(ip6.src), plain_str(ip6.dst), frag.id)
+        offset = frag.offset * 8
+        is_atomic = frag.offset == 0 and frag.m == 0
+        if is_atomic:
+            # RFC 6946: every atomic fragment is a complete datagram on its
+            # own. A unique key keeps two atomic datagrams apart even when
+            # they share the same (src, dst, id), and keeps them away from
+            # the regular fragment group with that identity.
+            unit_key = identity_key + (True, sequence)
+        else:
+            unit_key = identity_key + (False,)
+
+        unit = units.get(unit_key)
+        if unit is None:
+            unit = _Strict6Unit(identity_key, is_atomic)
+            units[unit_key] = unit
+            if len(units) > max_groups:
+                unit.fail(StrictIPv6ReasmError.LIMIT_GROUPS)
+
+        # On-wire geometry first: a fragment that fails it contributes no
+        # trustworthy body, only a best-effort observed range.
+        try:
+            chain, body = _strict6_wire_geometry(ip6, frag)
+        except _Strict6Reject as ex:
+            unit.ranges.append(_strict6_observed_range(ip6, frag, offset))
+            unit.fail(ex.reason, ex.detail)
+            continue
+
+        wire_range = StrictIPv6ReasmRange(offset, len(body))
+        unit.ranges.append(wire_range)
+
+        if unit.rejected:
+            # A prior failure doomed this unit; keep range metadata only and
+            # never buffer the payload.
+            continue
+
+        # Nested Fragment Headers are illegal inside the fragmentable part.
+        if _strict6_has_nested_fraghdr(frag):
+            unit.fail(StrictIPv6ReasmError.NESTED_FRAGHDR)
+            continue
+
+        body_len = len(body)
+        # Resource limits, enforced before buffering any fragment body.
+        if len(unit.frags) >= max_fragments_per_group:
+            unit.fail(StrictIPv6ReasmError.LIMIT_FRAGMENTS)
+            continue
+        if body_len > byte_budget:
+            unit.fail(
+                StrictIPv6ReasmError.LIMIT_BYTES,
+                "fragment body of %d bytes over a remaining budget of %d"
+                % (body_len, byte_budget),
+            )
+            continue
+
+        fingerprint = (
+            frag.nh,
+            tuple(_strict6_hdr_bytes(hdr) for hdr in chain),
+        )
+        if unit.fingerprint is None:
+            unit.fingerprint = fingerprint
+        elif fingerprint != unit.fingerprint:
+            unit.fail(StrictIPv6ReasmError.HEADER_CONFLICT)
+            continue
+
+        if offset + body_len > _IPV6_MAX_PLEN:
+            unit.fail(
+                StrictIPv6ReasmError.OFFSET_OVERFLOW,
+                "fragment would end at byte %d" % (offset + body_len),
+            )
+            continue
+
+        if frag.m == 1 and body_len % 8 != 0:
+            unit.fail(
+                StrictIPv6ReasmError.NON_LAST_NOT_MULT8,
+                "non-last fragment body of %d bytes" % body_len,
+            )
+            continue
+
+        byte_budget -= body_len
+        if frag.offset == 0:
+            unit.first_pkt = pkt
+        unit.frags.append((offset, body_len, frag.m, body, sequence))
+
+    # Finalize every unit: structural RFC 5722 rules run before any
+    # reassembly buffer is allocated, so a failed unit never yields a
+    # half-built packet.
+    for unit in units.values():
+        if unit.rejected:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, unit.reason, list(unit.ranges), unit.detail))
+            continue
+
+        frags = unit.frags
+        if not any(f[0] == 0 for f in frags):
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.NO_FIRST,
+                list(unit.ranges)))
+            continue
+
+        # Same (offset, length) seen twice: an exact duplicate when the bytes
+        # match, an overlap otherwise. Both discard the whole group.
+        seen_ranges = {}  # type: Dict[tuple, bytes]
+        duplicate = overlap = False
+        for f_offset, f_len, _m, f_body, _seq in frags:
+            signature = (f_offset, f_len)
+            if signature in seen_ranges:
+                if seen_ranges[signature] == f_body:
+                    duplicate = True
+                else:
+                    overlap = True
+                break
+            seen_ranges[signature] = f_body
+        if duplicate:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.DUPLICATE,
+                list(unit.ranges)))
+            continue
+        if overlap:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.OVERLAP,
+                list(unit.ranges)))
+            continue
+
+        last_frags = [f for f in frags if f[2] == 0]
+        if len(last_frags) == 0:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.NO_LAST,
+                list(unit.ranges)))
+            continue
+        if len(last_frags) > 1:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.MULTIPLE_LAST,
+                list(unit.ranges),
+                "%d fragments with M=0" % len(last_frags)))
+            continue
+
+        ordered = sorted(frags, key=lambda f: (f[0], f[4]))
+        expected = 0
+        hole = overlap = False
+        for f_offset, f_len, _m, _body, _seq in ordered:
+            if f_offset < expected:
+                overlap = True
+                break
+            if f_offset > expected:
+                hole = True
+                break
+            expected = f_offset + f_len
+        if overlap:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.OVERLAP,
+                list(unit.ranges)))
+            continue
+        if hole:
+            result.rejected.append(StrictIPv6ReasmReject(
+                unit.identity, StrictIPv6ReasmError.HOLE,
+                list(unit.ranges)))
+            continue
+
+        # All checks passed: only now build the contiguous fragmentable part.
+        fragmentable = b"".join(f[3] for f in ordered)
+        result.reassembled.append(
+            _strict6_rebuild(unit.first_pkt, fragmentable))
+
+    return result
 
 #############################################################################
 #############################################################################
