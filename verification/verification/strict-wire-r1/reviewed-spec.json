@@ -1,0 +1,64 @@
+{
+  "uid": 2124,
+  "run_id": "uf-20261115-new8-ipv6-strict-reassembly",
+  "reviewed": true,
+  "reviewer": "Codex primary reviewer",
+  "frozen_trace_sha256": "650031dfcb51b627e256df16197af78d932a520fccd6674a859696d42dc707aa",
+  "revision": "strict-wire-r1",
+  "product_modules": [
+    "scapy",
+    "scapy.layers.inet6"
+  ],
+  "support_files": [
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\acceptance-2124-r1.py",
+      "path": "test_acceptance.py",
+      "sha256": "24be52694d3a7fb36cfcf2af448c86eb43f9f1a3aa050c25f42a5bbfdd6563ff"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\ipv6-wire-fixtures-r1.py",
+      "path": "wire_fixtures.py",
+      "sha256": "5a9fd531bf4049ad76937b863ef69aaf308ea52594eafb8d2a3e76e5da516a84"
+    }
+  ],
+  "commands": [
+    {
+      "name": "independent-wire",
+      "argv": [
+        "{python}",
+        "-B",
+        "{verification}/test_acceptance.py"
+      ],
+      "timeout": 180
+    },
+    {
+      "name": "model-strict-tests",
+      "argv": [
+        "{python}",
+        "-B",
+        "-m",
+        "scapy.tools.UTscapy",
+        "-t",
+        "test/scapy/layers/inet6_strict_reassembly.uts",
+        "-N",
+        "-q"
+      ],
+      "timeout": 180
+    },
+    {
+      "name": "legacy-fragment-tests",
+      "argv": [
+        "{python}",
+        "-B",
+        "-m",
+        "scapy.tools.UTscapy",
+        "-t",
+        "test/scapy/layers/inet6.uts",
+        "-n",
+        "385-393,395-397",
+        "-q"
+      ],
+      "timeout": 180
+    }
+  ]
+}

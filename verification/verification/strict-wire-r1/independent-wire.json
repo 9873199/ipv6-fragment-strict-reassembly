@@ -1,0 +1,12 @@
+{
+  "time": "2026-11-15T13:38:16+08:00",
+  "argv": [
+    "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\tasks\\scapy\\env\\Scripts\\python.exe",
+    "-B",
+    "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1/test_acceptance.py"
+  ],
+  "cwd": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\replay-source",
+  "exit_code": 1,
+  "stdout_log": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\independent-wire.stdout.log",
+  "stderr_log": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\independent-wire.stderr.log"
+}

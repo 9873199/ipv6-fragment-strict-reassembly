@@ -1,0 +1,183 @@
+{
+  "created": "2026-11-15T13:55:46+08:00",
+  "reviewed": true,
+  "reviewer": "Codex primary reviewer",
+  "uid": 2124,
+  "frozen_commit": "61ce7752993794142efcd7523d0e8722a29f2478",
+  "native_trajectory_sha256": "650031dfcb51b627e256df16197af78d932a520fccd6674a859696d42dc707aa",
+  "files": [
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\freeze.json",
+      "path": "freeze.json",
+      "sha256": "d617245c7e0a94897febd5e4e9ec87b54c026d7c008037fbdf579466ae319118"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\freeze-audit.json",
+      "path": "freeze-audit.json",
+      "sha256": "cfea2ba43cb04b67332ac0bbb26101a3114a9110fe8d877713bf7327807c25f3"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\environment-reviewed.json",
+      "path": "environment-reviewed.json",
+      "sha256": "6d9da89b47c2cd3eb5e7e39a7b93e7b4048f61c172fb84880b281ed56a8566f4"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\evidence-map.json",
+      "path": "evidence-map.json",
+      "sha256": "1cbc7ffd2133efbd3af722910c2b2bf53a0f2ab0454e403cd15a880452ee8a57"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\model-final-answer.txt",
+      "path": "model-final-answer.txt",
+      "sha256": "3d72df4a790ef68993f441e78a78b2015bdab113aab8b39d3fbc9e98c25fae85"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\test-results.json",
+      "path": "test-results.json",
+      "sha256": "9b2f7e7067be2c585376c3be98a0f1be69741189bdf59e7903641f0eee249a8a"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\evaluation-qc.json",
+      "path": "evaluation-qc.json",
+      "sha256": "4e94c0126e07f1ea88c4be9167a058ec9729b8e87094e816f7da1c8e217aed58"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\recorded-runtime-r1\\actual-commands.json",
+      "path": "verification/recorded-runtime-r1/actual-commands.json",
+      "sha256": "f27c40aeac27a83a46f5ec3c63502aa16d6e3b843b44b8fd4bf78e8205849d90"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\recorded-runtime-r1\\actual-keystrokes.json",
+      "path": "verification/recorded-runtime-r1/actual-keystrokes.json",
+      "sha256": "3eaffbf327e0dc22e5bf102b64ef32315a5af5f96ad56a7a7c596784da71ee5d"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\recorded-runtime-r1\\recording-status.json",
+      "path": "verification/recorded-runtime-r1/recording-status.json",
+      "sha256": "53be151f63435c266edd0238176242a72466f2256c04c3f70f77e3c24149cbc1"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\recorded-runtime-r1\\spec.json",
+      "path": "verification/recorded-runtime-r1/spec.json",
+      "sha256": "4dc24c07b07799f39ed6ba9fa514ec4a9c0127946e1d4b042709e6e0bd3554c3"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\recorded-runtime-r1\\typing-check.json",
+      "path": "verification/recorded-runtime-r1/typing-check.json",
+      "sha256": "06b2cd5b2281e712abac7e6d08f995bef14050db22f1847584a882854be94beb"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\recorded-runtime-r1\\wire-output.log",
+      "path": "verification/recorded-runtime-r1/wire-output.log",
+      "sha256": "c3abf3f72fab421bea86630f88aa629c34bea4ec2af78f35fbf43e9318cf9e64"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\actual-import.json",
+      "path": "verification/strict-wire-r1/actual-import.json",
+      "sha256": "41d4aab653f15f9b5c442dcbde5ba35a556bc923a8e89bd3255c62041f44092a"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\actual-import.stderr.log",
+      "path": "verification/strict-wire-r1/actual-import.stderr.log",
+      "sha256": "af12d0b4a274a64b109a61164d56eb25ed42aa5e01c5017f6e018235caff9e57"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\actual-import.stdout.log",
+      "path": "verification/strict-wire-r1/actual-import.stdout.log",
+      "sha256": "4428dd8f829231a7b61022a0df3a48ec45e468ec5e1ed510e55d263662ec8a7d"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\demo.py",
+      "path": "verification/strict-wire-r1/demo.py",
+      "sha256": "21b9e363a7fe90f5d84d8cdaaceff3bdbd3ee8674088167407b2ccaec4f6d743"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\dependency-lock.json",
+      "path": "verification/strict-wire-r1/dependency-lock.json",
+      "sha256": "19685b00480ab84a00312d68f63ade4423a051f56fc4c908b666144e66489ebf"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\dependency-lock.stderr.log",
+      "path": "verification/strict-wire-r1/dependency-lock.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\dependency-lock.stdout.log",
+      "path": "verification/strict-wire-r1/dependency-lock.stdout.log",
+      "sha256": "daa71dbb33c4dec2d25903be2d0efb47e9dcf480cc84c760b91ecae6a13d6e77"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\independent-wire.json",
+      "path": "verification/strict-wire-r1/independent-wire.json",
+      "sha256": "9ca3d36d9c34ca2609e15a3416f7d19a670d007d242ee588648ef863b7f022e6"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\independent-wire.stderr.log",
+      "path": "verification/strict-wire-r1/independent-wire.stderr.log",
+      "sha256": "f7c03c38ecf0e350f53429943076b1740577300f7d498c36ce7f761e192cf4fe"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\independent-wire.stdout.log",
+      "path": "verification/strict-wire-r1/independent-wire.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\legacy-fragment-tests.json",
+      "path": "verification/strict-wire-r1/legacy-fragment-tests.json",
+      "sha256": "1845b2d55f325f8a37f17a4d31a2181f521e3dc6ff6b4d4e28c8e67c61b7e6d2"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\legacy-fragment-tests.stderr.log",
+      "path": "verification/strict-wire-r1/legacy-fragment-tests.stderr.log",
+      "sha256": "69b5678ee0da72cb2fdf98645ca181e359f433f29fe26bd208f5cdd78654c180"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\legacy-fragment-tests.stdout.log",
+      "path": "verification/strict-wire-r1/legacy-fragment-tests.stdout.log",
+      "sha256": "54fb86095727c1b3ad234a2744a226efad695fb238f787541ca0d3dd4b43daeb"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\model-strict-tests.json",
+      "path": "verification/strict-wire-r1/model-strict-tests.json",
+      "sha256": "a5f201fc2a18b6cd845fe0ea62dfe98ec62479682fa59e76c7633667dfd15fb4"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\model-strict-tests.stderr.log",
+      "path": "verification/strict-wire-r1/model-strict-tests.stderr.log",
+      "sha256": "69b5678ee0da72cb2fdf98645ca181e359f433f29fe26bd208f5cdd78654c180"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\model-strict-tests.stdout.log",
+      "path": "verification/strict-wire-r1/model-strict-tests.stdout.log",
+      "sha256": "0b87f78c64062c485f5d35b71d4ae1b6efa12d4dd6f052da71ed8211379bc893"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\replay-proof.json",
+      "path": "verification/strict-wire-r1/replay-proof.json",
+      "sha256": "335b35d0435380b4fcec4b6fe6db47f5d6ffb08113d18fca26b03d2732e46a0d"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\reproduction-notes.md",
+      "path": "verification/strict-wire-r1/reproduction-notes.md",
+      "sha256": "f3d95e90f11d7d07df2abbc23d44b0b5cb720c1d8793268e98b1c94e3da728fd"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\reviewed-spec.json",
+      "path": "verification/strict-wire-r1/reviewed-spec.json",
+      "sha256": "a0d85722c2940d9d53431bf1f720ad67be37ccdd436f415580ef0be523c60011"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\test_acceptance.py",
+      "path": "verification/strict-wire-r1/test_acceptance.py",
+      "sha256": "24be52694d3a7fb36cfcf2af448c86eb43f9f1a3aa050c25f42a5bbfdd6563ff"
+    },
+    {
+      "source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\wire_fixtures.py",
+      "path": "verification/strict-wire-r1/wire_fixtures.py",
+      "sha256": "5a9fd531bf4049ad76937b863ef69aaf308ea52594eafb8d2a3e76e5da516a84"
+    }
+  ],
+  "reproduction_readme": "UID2124 独立复现资料。Windows Python3.14.3，未容器化，依赖见dependency-lock.stdout.log。冻结仓库根置于PYTHONPATH；python verification/verification/strict-wire-r1/test_acceptance.py：36项33通过、2失败、1错误。所有Packet序列化再解析，无网卡发包。模型新增37项UTscapy用例、原有inet6.uts选择385-393,395-397共12项独立复跑通过，均有原始日志，不把模型报告的完整512/12算成本轮独立结果。异常来自冻结_rebuild的16位plen打包，夹具每个分片本身合法；跨片DestinationOptions后的嵌套Fragment及M0后续M1均实际返回数据报。demo直接展示上述三类问题，exit1。冻结源码和原轨未修改。",
+  "no_model_source_edits": true,
+  "native_trace_included": false
+}

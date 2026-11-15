@@ -1,0 +1,18 @@
+WARNING: WinPcap is now deprecated (not maintained). Please use Npcap instead
+WinPcap is now deprecated (not maintained). Please use Npcap instead
+WARNING: Scapy has detected that your pcap service is not running !
+Scapy has detected that your pcap service is not running !
+WARNING: [SC] StartService: OpenService FAILED 1060:
+
+The specified service does not exist as an installed service.
+
+
+[SC] StartService: OpenService FAILED 1060:
+
+The specified service does not exist as an installed service.
+
+
+WARNING: Could not start the pcap service! You probably won't be able to send packets. Check your winpcap/npcap installation and access rights.
+Could not start the pcap service! You probably won't be able to send packets. Check your winpcap/npcap installation and access rights.
+WARNING: This will completely mess up the routes. Testing purpose only !
+This will completely mess up the routes. Testing purpose only !

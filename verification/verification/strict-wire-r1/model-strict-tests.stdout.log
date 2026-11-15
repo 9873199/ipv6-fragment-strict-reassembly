@@ -1,0 +1,499 @@
+━ UTScapy - Scapy 2026.11.14 - 3.14.3
+passed 6B7FD5EC strict defrag - test helpers
+passed FF9E93EF strict defrag - out of order UDP fragments reassemble byte for byte
+passed E223995E strict defrag - TCP fragments keep exact upper-layer bytes and hash
+passed 75D6C9C6 strict defrag - two sources sharing an id complete independently
+passed B22A9CF7 strict defrag - non-fragment packets are ignored
+passed F96726EA strict defrag - any overlap discards the whole group
+passed 2C53E70B strict defrag - a rejected group never blocks a healthy group
+passed 9B1BBABE strict defrag - an exact duplicate fragment is not accepted
+passed 5739F79E strict defrag - same range with different bytes is an overlap
+passed 4FBE3025 strict defrag - a hole between ranges rejects the group
+passed FDC0B431 strict defrag - missing first fragment
+passed 0B1F0F15 strict defrag - missing last fragment
+passed 626C3BA0 strict defrag - several M=0 fragments
+passed 2C483CAB strict defrag - non-last fragment length must be a multiple of 8
+passed 0A052E12 strict defrag - last fragment is allowed a non multiple of 8 length
+passed 5337B78E strict defrag - offset exceeding the IPv6 payload length range
+passed AC9C4788 strict defrag - nested Fragment Header
+passed A42FF404 strict defrag - conflicting Fragment Header next-header values
+passed 82460C31 strict defrag - conflicting unfragmentable extension header chain
+passed DA5C3937 strict defrag - extension headers before the Fragment Header are kept
+passed 02A282A6 strict defrag - link-layer tail padding is not consumed as data
+passed E2B22FFC strict defrag - truncated remnant is rejected, no bytes invented
+passed 98E672AC strict defrag - oversized payload length field is rejected
+passed 86161776 strict defrag - an atomic fragment is a standalone complete datagram
+passed 51C6955E strict defrag - atomic and regular fragments with the same id coexist
+passed B3C0EE1A strict defrag - a rejected regular group does not taint the atomic one
+passed 734FBAB6 strict defrag - two atomic datagrams sharing an id are both delivered
+passed AC15853E strict defrag - max_groups boundary and overflow
+passed 09AB09CB strict defrag - max_fragments_per_group boundary and overflow
+passed 1B6CBE79 strict defrag - cumulative fragment byte budget boundary and overflow
+passed 550C1333 strict defrag - byte budget overflow leaves the sibling group intact
+passed 62928647 strict defrag - negative limits raise ValueError
+passed FC0BD2AA strict defrag - atomic datagrams are counted by max_groups
+passed F415CB3A strict defrag - input packets and their caches are never modified
+passed 0790AAC0 strict defrag - rejection reports only carry identity ranges and reason
+passed 35CC74F5 strict defrag - one mixed batch keeps every healthy group independent
+passed 9DD1EF63 strict defrag - the legacy loose defragment6 function is unchanged
+Campaign CRC=28C496CD  SHA=A55156A1C07343F6140E3427B661C73A53C8EDFB
+PASSED=37 FAILED=0
+
+No network interface is used and no packet is ever sent.
+━ Run at 13:38:28 from [test/scapy/layers/inet6_strict_reassembly.uts] by UTscapy in 0.8919684886932373
+ └ Passed=37
+ └ Failed=0
+
+######
+## Test defragment6_strict basic reassembly
+######
+
+
+###(000)=[passed] strict defrag - test helpers
+
+>>> import hashlib
+>>> 
+>>> 
+>>> def _sha(data):
+...     return hashlib.sha256(data).hexdigest()
+... 
+>>> 
+>>> def _udp_frags(src, dst, fid, payload, size=128, exthdrs=()):
+...     chain = IPv6(src=src, dst=dst)
+...     for hdr in exthdrs:
+...         chain = chain / hdr
+...     orig = chain / IPv6ExtHdrFragment(id=fid) / UDP(
+...         sport=1234, dport=4321) / Raw(load=payload)
+...     return orig, [IPv6(raw(f)) for f in fragment6(orig, size)]
+... 
+>>> 
+>>> assert _sha(b"x") == hashlib.sha256(b"x").hexdigest()
+
+
+###(001)=[passed] strict defrag - out of order UDP fragments reassemble byte for byte
+
+>>> orig, frags = _udp_frags("2001:db8::1", "2001:db8::2", 100, b"U" * 500)
+>>> res = defragment6_strict(list(reversed(frags)))
+>>> assert len(res.reassembled) == 1
+>>> assert len(res.rejected) == 0
+>>> out = res.reassembled[0]
+>>> assert IPv6ExtHdrFragment not in out
+>>> assert out[IPv6].nh == 17
+>>> expected = raw(orig[IPv6ExtHdrFragment].payload)
+>>> got = raw(out[IPv6].payload)
+>>> assert got == expected
+>>> assert _sha(got) == _sha(expected)
+>>> assert out[IPv6].plen == len(expected)
+>>> assert out[UDP].dport == 4321
+>>> assert out[Raw].load == b"U" * 500
+
+
+###(002)=[passed] strict defrag - TCP fragments keep exact upper-layer bytes and hash
+
+>>> tcp_orig = (IPv6(src="fe80::1", dst="fe80::2")
+...             / IPv6ExtHdrFragment(id=9) / TCP(sport=80, dport=8080)
+...             / Raw(load=b"T" * 400))
+>>> tfrags = [IPv6(raw(f)) for f in fragment6(tcp_orig, 100)]
+>>> res = defragment6_strict(
+...     sorted(tfrags, key=lambda p: -p[IPv6ExtHdrFragment].offset))
+>>> assert len(res.reassembled) == 1 and not res.rejected
+>>> t_out = res.reassembled[0]
+>>> assert t_out[IPv6].nh == 6 and TCP in t_out
+>>> t_expected = raw(tcp_orig[IPv6ExtHdrFragment].payload)
+>>> assert raw(t_out[IPv6].payload) == t_expected
+>>> assert _sha(raw(t_out[IPv6].payload)) == _sha(t_expected)
+
+
+###(003)=[passed] strict defrag - two sources sharing an id complete independently
+
+>>> _, frags_a = _udp_frags("2001:db8::10", "2001:db8::20", 777, b"A" * 300)
+>>> _, frags_b = _udp_frags("2001:db8::30", "2001:db8::40", 777, b"B" * 300)
+>>> res = defragment6_strict(list(reversed(frags_a)) + list(reversed(frags_b)))
+>>> assert len(res.reassembled) == 2
+>>> assert not res.rejected
+>>> assert sorted(p[Raw].load for p in res.reassembled) == [b"A" * 300, b"B" * 300]
+
+
+###(004)=[passed] strict defrag - non-fragment packets are ignored
+
+>>> res = defragment6_strict([IPv6() / UDP() / Raw(b"x"), IPv6() / TCP()])
+>>> assert not res.reassembled and not res.rejected
+
+
+######
+## Test defragment6_strict RFC 5722 rejection rules
+######
+
+
+###(005)=[passed] strict defrag - any overlap discards the whole group
+
+>>> ov = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=10, offset=0, m=1) / Raw(b"0123456789abcdef"))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=10, offset=1, m=1) / Raw(b"XXXXXXXX"))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=10, offset=2, m=0) / Raw(b"YYYYYYYY"))),
+... ]
+>>> res = defragment6_strict(ov)
+>>> assert not res.reassembled
+>>> assert len(res.rejected) == 1
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.OVERLAP
+>>> assert [(r.offset, r.length) for r in res.rejected[0].ranges] == [
+...     (0, 16), (8, 8), (16, 8)]
+
+
+###(006)=[passed] strict defrag - a rejected group never blocks a healthy group
+
+>>> res = defragment6_strict(ov + frags)
+>>> assert len(res.reassembled) == 1
+>>> assert res.reassembled[0][Raw].load == b"U" * 500
+>>> assert len(res.rejected) == 1
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.OVERLAP
+
+
+###(007)=[passed] strict defrag - an exact duplicate fragment is not accepted
+
+>>> dup = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=11, offset=0, m=1) / Raw(b"D" * 16))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=11, offset=0, m=1) / Raw(b"D" * 16))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=11, offset=2, m=0) / Raw(b"E" * 16))),
+... ]
+>>> res = defragment6_strict(dup)
+>>> assert not res.reassembled
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.DUPLICATE
+
+
+###(008)=[passed] strict defrag - same range with different bytes is an overlap
+
+>>> ov2 = list(dup)
+>>> ov2[1] = IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=11, offset=0, m=1) / Raw(b"F" * 16)))
+>>> assert defragment6_strict(ov2).rejected[0].reason == StrictIPv6ReasmError.OVERLAP
+
+
+###(009)=[passed] strict defrag - a hole between ranges rejects the group
+
+>>> hole = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=12, offset=0, m=1) / Raw(b"G" * 16))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=12, offset=4, m=0) / Raw(b"H" * 16))),
+... ]
+>>> assert defragment6_strict(hole).rejected[0].reason == StrictIPv6ReasmError.HOLE
+
+
+###(010)=[passed] strict defrag - missing first fragment
+
+>>> no_first = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=13, offset=1, m=1) / Raw(b"a" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=13, offset=2, m=0) / Raw(b"b" * 8))),
+... ]
+>>> assert defragment6_strict(no_first).rejected[0].reason == StrictIPv6ReasmError.NO_FIRST
+
+
+###(011)=[passed] strict defrag - missing last fragment
+
+>>> no_last = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=14, offset=0, m=1) / Raw(b"c" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=14, offset=1, m=1) / Raw(b"d" * 8))),
+... ]
+>>> assert defragment6_strict(no_last).rejected[0].reason == StrictIPv6ReasmError.NO_LAST
+
+
+###(012)=[passed] strict defrag - several M=0 fragments
+
+>>> multi_last = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=15, offset=0, m=1) / Raw(b"e" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=15, offset=1, m=0) / Raw(b"f" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=15, offset=2, m=0) / Raw(b"g" * 8))),
+... ]
+>>> assert defragment6_strict(multi_last).rejected[0].reason == StrictIPv6ReasmError.MULTIPLE_LAST
+
+
+###(013)=[passed] strict defrag - non-last fragment length must be a multiple of 8
+
+>>> bad_len = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=16, offset=0, m=1) / Raw(b"1234567890"))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=16, offset=2, m=0) / Raw(b"h" * 8))),
+... ]
+>>> assert defragment6_strict(bad_len).rejected[0].reason == StrictIPv6ReasmError.NON_LAST_NOT_MULT8
+
+
+###(014)=[passed] strict defrag - last fragment is allowed a non multiple of 8 length
+
+>>> ok_tail = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=17, offset=0, m=1) / Raw(b"h" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=17, offset=1, m=0) / Raw(b"iii"))),
+... ]
+>>> res = defragment6_strict(ok_tail)
+>>> assert len(res.reassembled) == 1 and not res.rejected
+>>> assert res.reassembled[0][Raw].load == b"h" * 8 + b"iii"
+
+
+###(015)=[passed] strict defrag - offset exceeding the IPv6 payload length range
+
+>>> overflow = IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=18, offset=8191, m=1) / Raw(b"X" * 8)))
+>>> assert defragment6_strict([overflow]).rejected[0].reason == StrictIPv6ReasmError.OFFSET_OVERFLOW
+
+
+###(016)=[passed] strict defrag - nested Fragment Header
+
+>>> nested = IPv6(raw(
+...     IPv6() / IPv6ExtHdrFragment(id=19, offset=0, m=0, nh=44)
+...     / IPv6ExtHdrFragment(id=20) / Raw(b"nested!")))
+>>> assert defragment6_strict([nested]).rejected[0].reason == StrictIPv6ReasmError.NESTED_FRAGHDR
+
+
+######
+## Test defragment6_strict header consistency
+######
+
+
+###(017)=[passed] strict defrag - conflicting Fragment Header next-header values
+
+>>> nh_conflict = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=21, nh=17, offset=0, m=1) / Raw(b"k" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrFragment(id=21, nh=6, offset=1, m=0) / Raw(b"l" * 8))),
+... ]
+>>> assert defragment6_strict(nh_conflict).rejected[0].reason == StrictIPv6ReasmError.HEADER_CONFLICT
+
+
+###(018)=[passed] strict defrag - conflicting unfragmentable extension header chain
+
+>>> chain_conflict = [
+...     IPv6(raw(IPv6() / IPv6ExtHdrHopByHop(options=[Pad1()])
+...              / IPv6ExtHdrFragment(id=22, nh=17, offset=0, m=1) / Raw(b"m" * 8))),
+...     IPv6(raw(IPv6() / IPv6ExtHdrHopByHop(options=[PadN(optdata=b"\x00" * 5)])
+...              / IPv6ExtHdrFragment(id=22, nh=17, offset=1, m=0) / Raw(b"n" * 8))),
+... ]
+>>> assert defragment6_strict(chain_conflict).rejected[0].reason == StrictIPv6ReasmError.HEADER_CONFLICT
+
+
+###(019)=[passed] strict defrag - extension headers before the Fragment Header are kept
+
+>>> ref = (IPv6(src="2001:db8::5", dst="2001:db8::6")
+...        / IPv6ExtHdrHopByHop(options=[Pad1()])
+...        / IPv6ExtHdrDestOpt(options=[PadN(optdata=b"\x00" * 3)])
+...        / UDP(sport=1234, dport=4321) / Raw(load=b"E" * 300))
+>>> _, ext_frags = _udp_frags(
+...     "2001:db8::5", "2001:db8::6", 555, b"E" * 300, size=120,
+...     exthdrs=(IPv6ExtHdrHopByHop(options=[Pad1()]),
+...              IPv6ExtHdrDestOpt(options=[PadN(optdata=b"\x00" * 3)])))
+>>> res = defragment6_strict(list(reversed(ext_frags)))
+>>> assert len(res.reassembled) == 1 and not res.rejected
+>>> o = res.reassembled[0]
+>>> assert IPv6ExtHdrHopByHop in o and IPv6ExtHdrDestOpt in o
+>>> assert IPv6ExtHdrFragment not in o
+>>> assert o[IPv6ExtHdrHopByHop].nh == 60
+>>> assert o[IPv6ExtHdrDestOpt].nh == 17
+>>> expected_ext = raw(ref[IPv6].payload)
+>>> assert raw(o[IPv6].payload) == expected_ext
+>>> assert _sha(raw(o[IPv6].payload)) == _sha(expected_ext)
+>>> assert o[IPv6].plen == len(raw(o[IPv6].payload))
+
+
+######
+## Test defragment6_strict wire geometry
+######
+
+
+###(020)=[passed] strict defrag - link-layer tail padding is not consumed as data
+
+>>> l2_frags = []
+>>> for f in fragment6(
+...         Ether(src="00:11:22:33:44:55", dst="66:77:88:99:aa:bb")
+...         / IPv6(src="2001::9", dst="2001::a")
+...         / IPv6ExtHdrFragment(id=444)
+...         / UDP(sport=1, dport=2) / Raw(load=b"L" * 200), 120):
+...     l2_frags.append(Ether(raw(f) + b"\x00" * 6))
+... 
+>>> res = defragment6_strict(l2_frags)
+>>> assert len(res.reassembled) == 1 and not res.rejected
+>>> l2_out = res.reassembled[0]
+>>> assert Ether in l2_out and Padding not in l2_out
+>>> assert l2_out[Raw].load == b"L" * 200
+>>> assert l2_out[IPv6].plen == len(raw(l2_out[IPv6].payload))
+
+
+###(021)=[passed] strict defrag - truncated remnant is rejected, no bytes invented
+
+>>> full = raw(IPv6() / IPv6ExtHdrFragment(id=445, offset=0, m=1) / Raw(b"S" * 16))
+>>> res = defragment6_strict([IPv6(full[:-6])])
+>>> assert not res.reassembled
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.BAD_PLEN
+
+
+###(022)=[passed] strict defrag - oversized payload length field is rejected
+
+>>> import struct as _struct
+>>> tampered = bytearray(full)
+>>> old_plen = _struct.unpack("!H", bytes(tampered[4:6]))[0]
+>>> tampered[4:6] = _struct.pack("!H", old_plen + 20)
+>>> res = defragment6_strict([IPv6(bytes(tampered))])
+>>> assert not res.reassembled
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.BAD_PLEN
+
+
+######
+## Test defragment6_strict RFC 6946 atomic fragments
+######
+
+
+###(023)=[passed] strict defrag - an atomic fragment is a standalone complete datagram
+
+>>> atom = IPv6(raw(
+...     IPv6(src="2001:db8::1", dst="2001:db8::2")
+...     / IPv6ExtHdrFragment(id=333, offset=0, m=0)
+...     / UDP(sport=9, dport=99) / Raw(b"atomic-data")))
+>>> res = defragment6_strict([atom])
+>>> assert len(res.reassembled) == 1 and not res.rejected
+>>> a_out = res.reassembled[0]
+>>> assert IPv6ExtHdrFragment not in a_out and a_out[IPv6].nh == 17
+>>> assert raw(a_out[IPv6].payload) == raw(atom[IPv6ExtHdrFragment].payload)
+>>> assert a_out.plen == len(raw(atom[IPv6ExtHdrFragment].payload))
+
+
+###(024)=[passed] strict defrag - atomic and regular fragments with the same id coexist
+
+>>> _, regular = _udp_frags("2001:db8::1", "2001:db8::2", 333, b"R" * 200)
+>>> res = defragment6_strict([atom] + regular)
+>>> assert len(res.reassembled) == 2 and not res.rejected
+>>> assert sorted(len(p[Raw].load) for p in res.reassembled) == [11, 200]
+
+
+###(025)=[passed] strict defrag - a rejected regular group does not taint the atomic one
+
+>>> bad_regular = [
+...     IPv6(raw(IPv6(src="2001:db8::1", dst="2001:db8::2")
+...              / IPv6ExtHdrFragment(id=333, offset=0, m=1) / Raw(b"o" * 16))),
+...     IPv6(raw(IPv6(src="2001:db8::1", dst="2001:db8::2")
+...              / IPv6ExtHdrFragment(id=333, offset=4, m=0) / Raw(b"p" * 8))),
+... ]
+>>> res = defragment6_strict([atom] + bad_regular)
+>>> assert any(p[Raw].load == b"atomic-data" for p in res.reassembled)
+>>> assert len(res.rejected) == 1
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.HOLE
+
+
+###(026)=[passed] strict defrag - two atomic datagrams sharing an id are both delivered
+
+>>> atom2 = IPv6(raw(
+...     IPv6(src="2001:db8::1", dst="2001:db8::2")
+...     / IPv6ExtHdrFragment(id=333, offset=0, m=0)
+...     / UDP(sport=9, dport=99) / Raw(b"atomic-two")))
+>>> res = defragment6_strict([atom, atom2] + regular)
+>>> assert len(res.reassembled) == 3 and not res.rejected
+>>> atomic_loads = sorted(
+...     p[Raw].load for p in res.reassembled if len(p[Raw].load) in (11, 10))
+>>> assert atomic_loads == [b"atomic-data", b"atomic-two"]
+>>> assert any(p[Raw].load == b"R" * 200 for p in res.reassembled)
+
+
+######
+## Test defragment6_strict resource limits
+######
+
+
+###(027)=[passed] strict defrag - max_groups boundary and overflow
+
+>>> g1 = _udp_frags("2001::1", "2001::2", 601, b"a" * 100, size=64)[1]
+>>> g2 = _udp_frags("2001::3", "2001::4", 602, b"b" * 100, size=64)[1]
+>>> g3 = _udp_frags("2001::5", "2001::6", 603, b"c" * 100, size=64)[1]
+>>> assert len(defragment6_strict(g1 + g2 + g3, max_groups=3).reassembled) == 3
+>>> res = defragment6_strict(g1 + g2 + g3, max_groups=2)
+>>> assert len(res.reassembled) == 2
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.LIMIT_GROUPS
+
+
+###(028)=[passed] strict defrag - max_fragments_per_group boundary and overflow
+
+>>> big = _udp_frags("2001::7", "2001::8", 604, b"z" * 400, size=64)[1]
+>>> n_frag = len(big)
+>>> assert len(defragment6_strict(big, max_fragments_per_group=n_frag).reassembled) == 1
+>>> res = defragment6_strict(big, max_fragments_per_group=n_frag - 1)
+>>> assert not res.reassembled
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.LIMIT_FRAGMENTS
+
+
+###(029)=[passed] strict defrag - cumulative fragment byte budget boundary and overflow
+
+>>> total_bytes = sum(p[IPv6].plen - 8 for p in g1)
+>>> assert len(defragment6_strict(
+...     g1, max_total_fragment_bytes=total_bytes).reassembled) == 1
+>>> res = defragment6_strict(g1, max_total_fragment_bytes=total_bytes - 1)
+>>> assert not res.reassembled
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.LIMIT_BYTES
+
+
+###(030)=[passed] strict defrag - byte budget overflow leaves the sibling group intact
+
+>>> res = defragment6_strict(g2 + g1, max_total_fragment_bytes=total_bytes)
+>>> assert len(res.reassembled) == 1
+>>> assert res.reassembled[0][Raw].load == b"b" * 100
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.LIMIT_BYTES
+
+
+###(031)=[passed] strict defrag - negative limits raise ValueError
+
+>>> raised = False
+>>> try:
+...     defragment6_strict([], max_groups=-1)
+... except ValueError:
+...     raised = True
+... 
+>>> assert raised
+
+
+###(032)=[passed] strict defrag - atomic datagrams are counted by max_groups
+
+>>> res = defragment6_strict([atom, atom2], max_groups=1)
+>>> assert len(res.reassembled) == 1
+>>> assert res.rejected[0].reason == StrictIPv6ReasmError.LIMIT_GROUPS
+
+
+######
+## Test defragment6_strict safety properties
+######
+
+
+###(033)=[passed] strict defrag - input packets and their caches are never modified
+
+>>> _, imm_frags = _udp_frags("2001::a", "2001::b", 700, b"I" * 200)
+>>> before_bytes = [raw(p) for p in imm_frags]
+>>> before_nh = [p[IPv6ExtHdrFragment].underlayer.nh for p in imm_frags]
+>>> defragment6_strict(list(reversed(imm_frags)))
+StrictIPv6ReasmResult(reassembled=[<IPv6  version=6 tc=0 fl=0 plen=208 nh=UDP hlim=64 src=2001::a [Teredo srv: 0.0.0.0 cli: 255.255.255.245:65535] dst=2001::b [Teredo srv: 0.0.0.0 cli: 255.255.255.244:65535] |<UDP  sport=1234 dport=4321 len=208 chksum=0x7e4 |<Raw  load=b'IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII' |>>>], rejected=[])
+>>> assert [raw(p) for p in imm_frags] == before_bytes
+>>> assert [p[IPv6ExtHdrFragment].underlayer.nh for p in imm_frags] == before_nh
+
+
+###(034)=[passed] strict defrag - rejection reports only carry identity ranges and reason
+
+>>> import dataclasses as _dc
+>>> rep = defragment6_strict(ov).rejected[0]
+>>> assert {f.name for f in _dc.fields(rep)} == {"group", "reason", "ranges", "detail"}
+>>> assert (rep.group.src, rep.group.dst, rep.group.frag_id) == ("::1", "::1", 10)
+>>> assert all(isinstance(r, StrictIPv6ReasmRange) and
+...            isinstance(r.offset, int) and isinstance(r.length, int)
+...            for r in rep.ranges)
+
+
+###(035)=[passed] strict defrag - one mixed batch keeps every healthy group independent
+
+>>> _, fa = _udp_frags("2001:db8::10", "2001:db8::20", 777, b"A" * 300)
+>>> batch = (list(reversed(frags)) + list(reversed(fa)) + ov + dup + hole +
+...          [atom] + regular + l2_frags + [IPv6(full[:-6])] + [nested])
+>>> res = defragment6_strict(batch)
+>>> reasons = sorted(r.reason.name for r in res.rejected)
+>>> for name in ("OVERLAP", "DUPLICATE", "HOLE", "BAD_PLEN", "NESTED_FRAGHDR"):
+...     assert name in reasons
+... 
+>>> assert len(res.reassembled) >= 4
+>>> for p in res.reassembled:
+...     assert IPv6ExtHdrFragment not in p
+...     assert p[IPv6].plen == len(raw(p[IPv6].payload))
+... 
+
+
+###(036)=[passed] strict defrag - the legacy loose defragment6 function is unchanged
+
+>>> loose = defragment6(frags)
+>>> assert loose[Raw].load == b"U" * 500
+
+
+

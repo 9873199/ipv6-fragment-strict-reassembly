@@ -1,0 +1,17 @@
+WARNING: WinPcap is now deprecated (not maintained). Please use Npcap instead
+WARNING: Scapy has detected that your pcap service is not running !
+WARNING: [SC] StartService: OpenService ʧ 1060:
+
+ָķδװ
+
+
+WARNING: Could not start the pcap service! You probably won't be able to send packets. Check your winpcap/npcap installation and access rights.
+Reversed UDP fragments, exact bytes: PASS
+Reversed TCP fragments, exact bytes: PASS
+Atomic isolation and duplicate rejection: PASS
+Fragment byte budget: PASS
+Fragment after declared final: FAIL - accepted
+Split extension hides nested Fragment: FAIL - accepted
+65535 bytes plus8 extension: FAIL - error 'H' format requires 0 <= number <= 65535
+All packets synthetic; network packets sent: 0
+Observed failing checks: 3

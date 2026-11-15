@@ -1,0 +1,18 @@
+{
+  "independent_wire": {
+    "passed": 33,
+    "failed": 2,
+    "errors": 1,
+    "command": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\independent-wire.json"
+  },
+  "model_strict_replay": {
+    "passed": 37,
+    "failed": 0,
+    "command": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\model-strict-tests.json"
+  },
+  "legacy_fragment_replay": {
+    "passed": 12,
+    "failed": 0,
+    "command": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\legacy-fragment-tests.json"
+  }
+}

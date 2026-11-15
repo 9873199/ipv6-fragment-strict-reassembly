@@ -1,0 +1,37 @@
+完成。在 `0e2f6ba` 基础上新增了一条与宽松路径并存的严格 IPv6 离线重组路径，旧的 `defragment6()` 一字未改。
+
+## 交付内容
+
+**`scapy/layers/inet6.py`（+478 行，纯新增，仅扩展了 import）**
+
+明确命名的公开接口，已注册进 `scapy.all`：
+
+```python
+defragment6_strict(packets, max_groups=1024,
+                   max_fragments_per_group=64,
+                   max_total_fragment_bytes=64*1024*1024)
+    -> StrictIPv6ReasmResult
+```
+
+配套公开类型：`StrictIPv6ReasmError`（14 个原因的枚举）、`StrictIPv6ReasmResult`、`StrictIPv6ReasmReject`、`StrictIPv6ReasmGroup`、`StrictIPv6ReasmRange`；内部实现均为下划线私有符号。
+
+## 需求落点
+
+- **分组身份**：按 `(IPv6 源, 目的, 32 位 id)` 三元组分组，绝不仅看 id——两个来源同 id 会各自独立完成。
+- **头链一致性**：组内 Fragment Header 的 `nh` 与整条不可分片扩展头链的线上字节必须一致，冲突整组 `HEADER_CONFLICT`。
+- **线上长度对齐**：片段正文直接从 `IPv6.original` 按 `plen` 切片（`_strict6_wire_geometry`），截断残片、虚高 plen → `BAD_PLEN`；链路层 padding 因落在 `plen` 之外永不入数据。
+- **RFC 5722**：任意区间重叠（含完全相同的重复片）整组丢弃，重复但字节不同 → `OVERLAP`，完全相同 → `DUPLICATE`；非末片长度必须是 8 的倍数；必须有 offset=0 首片、唯一 M=0 末片、区间连续，分别对应 `NON_LAST_NOT_MULT8 / NO_FIRST / NO_LAST / MULTIPLE_LAST / HOLE`；offset 越界 `OFFSET_OVERFLOW`；嵌套 Fragment Header `NESTED_FRAGHDR`。不造字节、不截短、不挑第一份凑成功。
+- **RFC 6946 atomic**：每个 `offset=0,M=0` 片段用带序号的独立 unit key，既不能填同 id 的普通组，也不会被那组的拒绝状态污染；两个同 id atomic 各自作为完整数据报送出。
+- **预算**：`max_groups / max_fragments_per_group / max_total_fragment_bytes` 在分配任何重组缓冲**之前**核对，越界只产生 `LIMIT_*` 拒绝，绝不返回半成品；负数限额抛 `ValueError`。
+- **输出**：在首片深拷贝上移除 Fragment Header，修正前一层 `nh` 与 `plen`，重新解析得到干净分组；上层 UDP/TCP 原字节逐位保留（测试用 sha256 核对）。输入 Packet 及其缓存不被修改。
+- **报告卫生**：拒绝项只含分组身份、字节区间（offset/length 整数）和原因，不含任何应用正文。
+
+**`test/scapy/layers/inet6_strict_reassembly.uts`（37 个测试，全部通过）** — 全部用程序生成 Packet 后 `raw()` 再解析，无网卡、无发包；覆盖双来源同 id、乱序、重叠、重复、缺洞、atomic 与普通分片混批、Fragment Header 前带扩展头、链路层尾 padding、截断/虚高 plen、嵌套头、三类预算边界、输入不可变性与报告字段。
+
+## 验证结果
+
+- 新严格套件：37 passed / 0 failed（另用 90 项独立脚本交叉验证，已清理）。
+- 旧 `inet6.uts`：512 passed / 12 failed，与干净 `git stash` 基线的失败集**完全相同**——12 个均为本机无 Npcap 导致的环境性失败（Ether/GRE MAC 解析、MRD、NDP 攻击、两个走 `fragment6(Ether()…)` 的 L2 测试），无回归。
+- 新代码无超 88 字符行；`test/scapy/layers/*.uts` 的 glob 会自动收录新测试文件。
+
+工作树现仅含这两处改动，临时文件与日志均已清除。

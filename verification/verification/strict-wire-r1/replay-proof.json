@@ -1,0 +1,33 @@
+{
+  "time": "2026-11-15T13:38:39+08:00",
+  "uid": 2124,
+  "run_id": "uf-20261115-new8-ipv6-strict-reassembly",
+  "actual": {
+    "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+    "executable": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\tasks\\scapy\\env\\Scripts\\python.exe",
+    "modules": {
+      "scapy": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\replay-source\\scapy\\__init__.py",
+      "scapy.layers.inet6": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\replay-source\\scapy\\layers\\inet6.py"
+    }
+  },
+  "replay_source": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\replay-source",
+  "frozen_hashes_unchanged": true,
+  "replay_source_hashes_unchanged": true,
+  "dependency_environment": "Reused the task dependency environment; exact pip freeze retained",
+  "commands": [
+    {
+      "name": "independent-wire",
+      "exit_code": 1
+    },
+    {
+      "name": "model-strict-tests",
+      "exit_code": 0
+    },
+    {
+      "name": "legacy-fragment-tests",
+      "exit_code": 0
+    }
+  ],
+  "score": null,
+  "semantic_review": "PENDING"
+}

@@ -1,0 +1,106 @@
+WARNING: WinPcap is now deprecated (not maintained). Please use Npcap instead
+WARNING: Scapy has detected that your pcap service is not running !
+WARNING: [SC] StartService: OpenService FAILED 1060:
+
+The specified service does not exist as an installed service.
+
+
+WARNING: Could not start the pcap service! You probably won't be able to send packets. Check your winpcap/npcap installation and access rights.
+test_atomic_does_not_poison_bad_regular (__main__.WireAcceptance.test_atomic_does_not_poison_bad_regular) ... ok
+test_atomic_separate_from_valid_regular (__main__.WireAcceptance.test_atomic_separate_from_valid_regular) ... ok
+test_byte_budget_exact (__main__.WireAcceptance.test_byte_budget_exact) ... ok
+test_byte_budget_exceeded (__main__.WireAcceptance.test_byte_budget_exceeded) ... ok
+test_conflicting_tail_endpoints (__main__.WireAcceptance.test_conflicting_tail_endpoints) ... ok
+test_cumulative_byte_budget (__main__.WireAcceptance.test_cumulative_byte_budget) ... ok
+test_declared_length_below_fragment_header (__main__.WireAcceptance.test_declared_length_below_fragment_header) ... ok
+test_exact_duplicate (__main__.WireAcceptance.test_exact_duplicate) ... ok
+test_extension_chain_and_nh (__main__.WireAcceptance.test_extension_chain_and_nh) ... ok
+test_extension_chain_conflict (__main__.WireAcceptance.test_extension_chain_conflict) ... ok
+test_extension_chain_counts_towards_total_plen (__main__.WireAcceptance.test_extension_chain_counts_towards_total_plen) ... ERROR
+test_extension_plus_offset_overflow (__main__.WireAcceptance.test_extension_plus_offset_overflow) ... ok
+test_fragment_budget_exact (__main__.WireAcceptance.test_fragment_budget_exact) ... ok
+test_fragment_budget_exceeded (__main__.WireAcceptance.test_fragment_budget_exceeded) ... ok
+test_group_budget_exact (__main__.WireAcceptance.test_group_budget_exact) ... ok
+test_group_budget_exceeded (__main__.WireAcceptance.test_group_budget_exceeded) ... ok
+test_hole (__main__.WireAcceptance.test_hole) ... ok
+test_input_hash_and_caches_unchanged (__main__.WireAcceptance.test_input_hash_and_caches_unchanged) ... ok
+test_link_padding_excluded (__main__.WireAcceptance.test_link_padding_excluded) ... ok
+test_missing_first (__main__.WireAcceptance.test_missing_first) ... ok
+test_missing_last (__main__.WireAcceptance.test_missing_last) ... ok
+test_nested_fragment_after_split_extension_header (__main__.WireAcceptance.test_nested_fragment_after_split_extension_header) ... FAIL
+test_nested_fragment_header (__main__.WireAcceptance.test_nested_fragment_header) ... ok
+test_nh_conflict (__main__.WireAcceptance.test_nh_conflict) ... ok
+test_nonlast_after_declared_final (__main__.WireAcceptance.test_nonlast_after_declared_final) ... FAIL
+test_nonlast_alignment (__main__.WireAcceptance.test_nonlast_alignment) ... ok
+test_offset_overflow (__main__.WireAcceptance.test_offset_overflow) ... ok
+test_overlap_partial (__main__.WireAcceptance.test_overlap_partial) ... ok
+test_same_range_different_data (__main__.WireAcceptance.test_same_range_different_data) ... ok
+test_tcp_reverse_order_bytes (__main__.WireAcceptance.test_tcp_reverse_order_bytes) ... ok
+test_truncated_declared_length (__main__.WireAcceptance.test_truncated_declared_length) ... ok
+test_two_atomic_same_id_independent (__main__.WireAcceptance.test_two_atomic_same_id_independent) ... ok
+test_two_destinations_same_id (__main__.WireAcceptance.test_two_destinations_same_id) ... ok
+test_two_sources_same_id (__main__.WireAcceptance.test_two_sources_same_id) ... ok
+test_udp_reverse_order_bytes (__main__.WireAcceptance.test_udp_reverse_order_bytes) ... ok
+test_valid_group_survives_bad_group (__main__.WireAcceptance.test_valid_group_survives_bad_group) ... ok
+
+======================================================================
+ERROR: test_extension_chain_counts_towards_total_plen (__main__.WireAcceptance.test_extension_chain_counts_towards_total_plen)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 88, in test_extension_chain_counts_towards_total_plen
+    body=b'A'*65535;p=[fragment(body[i:i+2048],i//8,int(i+2048<len(body)),nh=59,extension=True) for i in range(0,len(body),2048)];rejection(p)
+                                                                                                                                  ~~~~~~~~~^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 11, in rejection
+    r=run(ps,**limits)
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 9, in run
+    def run(ps,**limits):return defragment6_strict(ps,**limits)
+                                ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\layers\inet6.py", line 1813, in defragment6_strict
+    _strict6_rebuild(unit.first_pkt, fragmentable))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\layers\inet6.py", line 1592, in _strict6_rebuild
+    return top.__class__(raw(top))
+                         ~~~^^^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\compat.py", line 125, in raw
+    return bytes(x)
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\packet.py", line 702, in __bytes__
+    return self.build()
+           ~~~~~~~~~~^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\packet.py", line 867, in build
+    p = self.do_build()
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\packet.py", line 852, in do_build
+    return self.post_build(pkt, pay)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1\replay-source\scapy\layers\inet6.py", line 356, in post_build
+    p = p[:4] + struct.pack("!H", tmp_len) + p[6:]
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^
+struct.error: 'H' format requires 0 <= number <= 65535
+
+======================================================================
+FAIL: test_nested_fragment_after_split_extension_header (__main__.WireAcceptance.test_nested_fragment_after_split_extension_header)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 91, in test_nested_fragment_after_split_extension_header
+    p=[fragment(body[i:i+16],i//8,int(i+16<len(body)),nh=60) for i in range(0,len(body),16)];rejection(p)
+                                                                                             ~~~~~~~~~^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 12, in rejection
+    assert not r.reassembled,'Invalid group produced datagram'
+           ^^^^^^^^^^^^^^^^^
+AssertionError: Invalid group produced datagram
+
+======================================================================
+FAIL: test_nonlast_after_declared_final (__main__.WireAcceptance.test_nonlast_after_declared_final)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 47, in test_nonlast_after_declared_final
+    p=[fragment(b'A'*16,0),fragment(b'B'*8,2,m=0),fragment(b'C'*8,3,m=1)];rejection(p)
+                                                                          ~~~~~~~~~^^^
+  File "D:\hc\userFeedback\cache\repairs-and-new12-20261115-r1\evaluation\uf-20261115-new8-ipv6-strict-reassembly\verification\strict-wire-r1/test_acceptance.py", line 12, in rejection
+    assert not r.reassembled,'Invalid group produced datagram'
+           ^^^^^^^^^^^^^^^^^
+AssertionError: Invalid group produced datagram
+
+----------------------------------------------------------------------
+Ran 36 tests in 0.502s
+
+FAILED (failures=2, errors=1)

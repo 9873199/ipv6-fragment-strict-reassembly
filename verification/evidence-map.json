@@ -1,0 +1,38 @@
+{
+  "process": {
+    "native_trace_lines": [
+      606,
+      612,
+      634,
+      641,
+      659,
+      661,
+      663,
+      670,
+      713,
+      723,
+      745,
+      757
+    ],
+    "observable_action_index": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\observable-action-index.json",
+    "private_reasoning_used": false,
+    "test_gap": "inet6_strict_reassembly.uts:154 direct offset overflow,158 direct nested header,130 multipleM0 only; no split extension, after-M0 M1, or extension-counted total plen"
+  },
+  "requirements": [
+    {
+      "requirement": "src/dst/id grouping, byte-exact UDP/TCP, atomic isolation, overlaps, padding and budgets",
+      "status": "PASS",
+      "evidence": "strict-wire-r1/test_acceptance.py; independent-wire.stderr.log"
+    },
+    {
+      "requirement": "unique final must be end, reject nested headers including split extension, include extension in16-bit total plen",
+      "status": "FAIL",
+      "evidence": "three named independent tests, acceptance-contract-review.json, real demo output"
+    }
+  ],
+  "time": "2026-11-15T13:55:46+08:00",
+  "uid": 2124,
+  "frozen_commit": "61ce7752993794142efcd7523d0e8722a29f2478",
+  "native_trace_sha256": "650031dfcb51b627e256df16197af78d932a520fccd6674a859696d42dc707aa",
+  "no_model_source_changes_after_freeze": true
+}

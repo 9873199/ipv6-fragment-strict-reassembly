@@ -1,0 +1,17 @@
+{
+  "time": "2026-11-15T13:38:29+08:00",
+  "argv": [
+    "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\tasks\\scapy\\env\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "scapy.tools.UTscapy",
+    "-t",
+    "test/scapy/layers/inet6_strict_reassembly.uts",
+    "-N",
+    "-q"
+  ],
+  "cwd": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\replay-source",
+  "exit_code": 0,
+  "stdout_log": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\model-strict-tests.stdout.log",
+  "stderr_log": "D:\\hc\\userFeedback\\cache\\repairs-and-new12-20261115-r1\\evaluation\\uf-20261115-new8-ipv6-strict-reassembly\\verification\\strict-wire-r1\\model-strict-tests.stderr.log"
+}
